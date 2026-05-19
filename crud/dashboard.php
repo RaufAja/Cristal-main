@@ -1,22 +1,23 @@
 <?php
 session_start();
+include 'koneksi.php';
 
-// Proteksi Halaman: Jika pengguna belum login, tendang kembali ke halaman login
+// 1. Proteksi Halaman: Cek apakah pengguna sudah login
 if (!isset($_SESSION['status']) || $_SESSION['status'] != "login") {
     header("location:login.php");
     exit;
 }
 
-include 'koneksi.php';
-
-// 1. Ambil data spesifik dari pengguna yang sedang login
 $username_sekarang = $_SESSION['username'];
-$query_profil = "SELECT * FROM users WHERE username = '$username_sekarang'";
-$result_profil = mysqli_query($conn, $query_profil);
-$data_profil = mysqli_fetch_assoc($result_profil);
 
-// 2. Ambil semua data pengguna dari database untuk ditampilkan di tabel
-$query_semua = "SELECT id, username FROM users";
+// 2. Ambil data user yang sedang aktif untuk mendapatkan ID Pengguna
+$query_user = "SELECT id FROM users WHERE username = '$username_sekarang'";
+$result_user = mysqli_query($conn, $query_user);
+$data_user = mysqli_fetch_assoc($result_user);
+$id_pengguna_anda = $data_user['id'] ?? 1;
+
+// 3. Ambil semua data anggota dari database untuk ditampilkan di tabel
+$query_semua = "SELECT * FROM users ORDER BY id ASC";
 $result_semua = mysqli_query($conn, $query_semua);
 ?>
 
@@ -29,75 +30,99 @@ $result_semua = mysqli_query($conn, $query_semua);
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4fbf7; /* Hijau sangat muda lembut */
+            background-color: #f4fbf7; /* Latar belakang hijau sangat muda polos */
             margin: 0;
             padding: 0;
             color: #333;
         }
-        /* Style untuk Navigasi Atas */
+
+        /* Top Navbar */
         .navbar {
-            background-color: #2e7d32; /* Hijau Tua */
+            background-color: #2e7d32; /* Hijau tua khas Cristal */
             color: white;
-            padding: 15px 30px;
+            padding: 15px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        .navbar h1 {
-            margin: 0;
+        .navbar .nav-title {
             font-size: 20px;
+            font-weight: bold;
         }
         .btn-logout {
-            background-color: #d32f2f; /* Merah untuk keluar */
+            background-color: #d32f2f;
             color: white;
             text-decoration: none;
-            padding: 8px 16px;
+            padding: 8px 18px;
             border-radius: 5px;
             font-weight: bold;
             font-size: 14px;
-            transition: background 0.3s;
+            transition: 0.3s;
         }
         .btn-logout:hover {
             background-color: #b71c1c;
         }
-        /* Style untuk Konten Utama */
+
+        /* Container Utama */
         .container {
-            max-width: 900px;
-            margin: 30px auto;
-            padding: 20px;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
         }
-        /* Kartu Selamat Datang / Profil */
+
+        /* Struktur Card (Kotak Putih) */
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e0e0e0;
+        }
+
+        /* Card Selamat Datang (Dengan Garis Hijau di Kiri) */
         .welcome-card {
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            border-left: 5px solid #4caf50; /* Garis Hijau di samping */
-            margin-bottom: 30px;
+            border-left: 5px solid #2e7d32;
         }
         .welcome-card h2 {
-            margin-top: 0;
             color: #2e7d32;
+            margin-top: 0;
+            margin-bottom: 10px;
         }
         .welcome-card p {
             margin: 5px 0;
             color: #555;
         }
-        /* Tabel Data */
-        .table-container {
-            background-color: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-        .table-container h3 {
-            margin-top: 0;
+
+        /* Card Tabel */
+        .table-card h3 {
             color: #2e7d32;
+            margin-top: 0;
             margin-bottom: 20px;
-            border-bottom: 2px solid #e8f5e9;
+            border-bottom: 2px solid #f4fbf7;
             padding-bottom: 10px;
         }
+
+        /* Tombol Tambah Data */
+        .btn-tambah {
+            background-color: #2e7d32;
+            color: white;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 5px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 20px;
+            font-size: 14px;
+            transition: 0.3s;
+            box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+        }
+        .btn-tambah:hover {
+            background-color: #1b5e20;
+        }
+
+        /* Desain Tabel */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -106,86 +131,116 @@ $result_semua = mysqli_query($conn, $query_semua);
         th, td {
             padding: 12px 15px;
             text-align: left;
-        }
-        th {
-            background-color: #4caf50; /* Hijau */
-            color: white;
-            text-transform: uppercase;
-            font-size: 14px;
-            letter-spacing: 0.5px;
-        }
-        tr {
             border-bottom: 1px solid #e0e0e0;
         }
-        /* Efek baris belang-beling (zebra) */
-        tr:nth-child(even) {
+        th {
+            background-color: #4caf50; /* Hijau terang papan tabel */
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+        td {
+            font-size: 15px;
+        }
+        tr:hover td {
             background-color: #f9fbf9;
         }
-        /* Efek saat baris disorot mouse */
-        tr:hover {
-            background-color: #f1f8f3;
-        }
+
+        /* Badge Status */
         .badge {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-            padding: 4px 8px;
+            padding: 4px 10px;
             border-radius: 4px;
             font-size: 12px;
             font-weight: bold;
+            display: inline-block;
+        }
+        .badge-active {
+            background-color: #2e7d32;
+            color: white;
+        }
+        .badge-registered {
+            background-color: #e0e0e0;
+            color: #666;
+        }
+
+        /* Tombol Aksi Hapus */
+        .btn-hapus {
+            background-color: #e53935;
+            color: white;
+            text-decoration: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .btn-hapus:hover {
+            background-color: #b71c1c;
         }
     </style>
 </head>
 <body>
 
-<!-- Bagian Navigasi -->
-<div class="navbar">
-    <h1>Panel Anggota - Ekskul Cristal</h1>
-    <a href="logout.php" class="btn-logout">Keluar</a>
-</div>
-
-<div class="container">
-    <!-- Bagian Info Profil Pengguna yang Login -->
-    <div class="welcome-card">
-        <h2>Selamat Datang, <?php echo htmlspecialchars($data_profil['username']); ?>! 👋</h2>
-        <p>Anda berhasil login ke dalam sistem database Ekskul Cristal.</p>
-        <p><strong>ID Pengguna Anda:</strong> <?php echo $data_profil['id']; ?></p>
+    <div class="navbar">
+        <div class="nav-title">Panel Anggota - Ekskul Cristal</div>
+        <a href="logout.php" class="btn-logout">Keluar</a>
     </div>
 
-    <!-- Bagian Tabel Data Semua Pengguna -->
-    <div class="table-container">
-        <h3>Daftar Anggota / Pengguna Sistem</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>No</th>
-                    <th>ID User</th>
-                    <th>Username</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php 
-                $no = 1;
-                while($row = mysqli_fetch_assoc($result_semua)) { 
-                ?>
-                <tr>
-                    <td><?php echo $no++; ?></td>
-                    <td>#<?php echo $row['id']; ?></td>
-                    <td><strong><?php echo htmlspecialchars($row['username']); ?></strong></td>
-                    <td>
-                        <!-- Jika username di tabel sama dengan yang login, beri tanda khusus -->
-                        <?php if($row['username'] == $username_sekarang) { ?>
-                            <span class="badge" style="background-color: #2e7d32; color: white;">Anda Sedang Aktif</span>
-                        <?php } else { ?>
-                            <span class="badge">Terdaftar</span>
-                        <?php } ?>
-                    </td>
-                </tr>
-                <?php } ?>
-            </tbody>
-        </table>
+    <div class="container">
+        
+        <div class="card welcome-card">
+            <h2>Selamat Datang, <?php echo htmlspecialchars($username_sekarang); ?>! 👋</h2>
+            <p>Anda berhasil login ke dalam sistem database Ekskul Cristal.</p>
+            <p><strong>ID Pengguna Anda:</strong> <?php echo $id_pengguna_anda; ?></p>
+        </div>
+
+        <div class="card table-card">
+            <h3>Daftar Anggota / Pengguna Sistem</h3>
+            
+            <a href="tambah.php" class="btn-tambah">+ Tambah Anggota Baru</a>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 8%;">NO</th>
+                        <th style="width: 15%;">ID USER</th>
+                        <th style="width: 35%;">USERNAME</th>
+                        <th style="width: 22%;">STATUS</th>
+                        <th style="width: 20%;">AKSI</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php 
+                    $no = 1;
+                    while($row = mysqli_fetch_assoc($result_semua)) { 
+                    ?>
+                    <tr>
+                        <td><?php echo $no++; ?></td>
+                        <td>#<?php echo $row['id']; ?></td>
+                        <td><strong><?php echo htmlspecialchars($row['username']); ?></strong></td>
+                        <td>
+                            <?php if($row['username'] == $username_sekarang) { ?>
+                                <span class="badge badge-active">Anda Sedang Aktif</span>
+                            <?php } else { ?>
+                                <span class="badge badge-registered">Terdaftar</span>
+                            <?php } ?>
+                        </td>
+                        <td>
+                            <?php if($row['username'] != $username_sekarang) { ?>
+                                <a href="hapus.php?id=<?php echo $row['id']; ?>" class="btn-hapus" onclick="return confirm('Yakin ingin menghapus anggota ini?');">Hapus</a>
+                            <?php } else { ?>
+                                <span style="font-size: 13px; color: #999; font-style: italic;">(Akun Anda)</span>
+                            <?php } ?>
+                        </td>
+                    </tr>
+                    <?php } ?>
+                </tbody>
+            </table>
+        </div>
+
     </div>
-</div>
 
 </body>
 </html>
