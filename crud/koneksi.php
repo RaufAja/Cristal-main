@@ -1,7 +1,7 @@
 <?php
 $host = "localhost";
-$user = "root";       // Default username XAMPP
-$pass = "";           // Default password XAMPP (kosong)
+$user = "2526_16";       // Default username XAMPP
+$pass = "12345678";           // Default password XAMPP (kosong)
 $db   = "2526_16db"; // Nama database yang dibuat di langkah 1
 
 $conn = mysqli_connect($host, $user, $pass, $db);
